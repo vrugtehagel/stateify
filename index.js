@@ -136,10 +136,10 @@ class PropertyReference extends EventTarget {
     callArrayMethod(array, property, ...args){
         const before = [...array]
         const after = array
-        array[property](...args)
+        const result = array[property](...args)
         const hasChanged = before.length != after.length
             || after.some((element, index) => element !== before[index])
-        if(!hasChanged) return
+        if(!hasChanged) return result
         const length = Math.max(before.length, after.length)
         const changes = []
         for(let index = 0; index < length; index++)
@@ -151,6 +151,7 @@ class PropertyReference extends EventTarget {
             references?.[index]?.dispatchValueChange(after[index], before[index])
         PropertyReference.parentMap.get(array)
             ?.forEach(reference => reference.dispatchPropertyChange())
+        return result
     }
 
 }

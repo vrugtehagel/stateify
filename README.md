@@ -15,6 +15,7 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
   * [`valuechange`](#events-valuechange)
   * [`propertychange`](#events-propertychange)
   * [`change`](#events-change)
+- [Notes](#notes)
 
 
 <a name="usage"></a>
@@ -71,7 +72,7 @@ console.log('I\'ve got ' + data.drinks) // "I've got coffee,tea,milk"
 // but, since data.favoriteNumber is a proxy and 23 is not,
 console.log(data.favoriteNumber === 23) // false
 ```
-Most of the time, you don't have to worry about any of this because things function almost identical to what they represent.
+Most of the time, you don't have to worry about any of this because state variables act like they _are_ the value they hold in nearly all cases.
 
 The proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
 
@@ -79,7 +80,7 @@ The proxies do make looking at values in the console a bit more difficult - the 
 <a name="special-methods"></a>
 ## Special methods
 
-These are utility methods any state variable has, that are not actually methods of the value they hold.
+These are utility methods any state variable has, that are not actually methods of their value.
 
 <a name="special-methods-get"></a>
 ### `get`
@@ -89,7 +90,7 @@ Gets the underlying value that a state variable represents. Useful for logging, 
 <a name="special-methods-set"></a>
 ### `set`
 
-Sets the underlying value. Mostly useful for when picking properties off an object. For example:
+Sets the underlying value. Mostly useful for picking properties off an object. For example:
 ```js
 import stateify from 'state-variables'
 
@@ -109,7 +110,7 @@ favoriteNumber = 3
 <a name="special-methods-delete"></a>
 ### `delete`
 
-Essentially the same as `set`, except it does a `delete` operation. That is, `data.foo.delete()` is identical to `delete data.foo`. The only difference is that, like `set`, it allows you to still do this even when picking properties off an object.
+Essentially the same as `set`, except it does a `delete` operation. That is, `data.foo.delete()` is identical to `delete data.foo`. Like `set`, this allows you to still delete properties even when picking them off an object.
 
 <a name="special-eventtarget-methods"></a>
 ### `EventTarget` methods
@@ -183,3 +184,11 @@ data.drinks.push('water') // "Drinks changed!"
 ### `change`
 
 Lastly, we've got the `change` event, which fires whenever either `valuechange` or `propertychange` does. This event is identical to `valuechange` for primitive values (because those will never fire `propertychange`). Most often this is probably the event you'll want to use.
+
+
+<a name="notes"></a>
+## Notes
+
+- Re-wrapping an object in a state variable does _not_ create a new state variable. When providing the same reference, it will result in the exact same state variable. In short, `stateify(object) === stateify(object)`.
+
+- Built-in methods on any state variable return the flat (non-state variable) values. So if `data.drinks` is a state variable for `['coffee', 'tea', 'milk']`, then e.g. `data.drinks.sort()` returns a reference to the _underlying_ array, not `data.drinks` itself.
