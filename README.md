@@ -116,7 +116,7 @@ Essentially the same as `set`, except it does a `delete` operation. That is, `da
 <a name="special-methods-typeof"></a>
 ### `typeof`
 
-Since the `typeof` operator does not work on state variables (they're all proxies, so `typeof` will always evaluate to `object`), this is a way to get the type of a value. `variable.typeof()` is a shorthand for `typeof variable.get()`.
+Since the `typeof` operator does not work on state variables (they're all proxies, so `typeof` will always evaluate to `'object'`), this is a way to get the type of a value. `variable.typeof()` is a shorthand for `typeof variable.get()`.
 
 <a name="special-eventtarget-methods"></a>
 ### `EventTarget` methods
