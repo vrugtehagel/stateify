@@ -90,7 +90,7 @@ Gets the underlying value that a state variable represents. Useful for logging, 
 <a name="special-methods-set"></a>
 ### `set`
 
-Sets the underlying value. Mostly useful for picking properties off an object. For example:
+Sets the underlying value. Mostly useful for when you're picking properties off an object. For example:
 ```js
 import stateify from 'state-variables'
 
