@@ -10,6 +10,7 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
   * [`get`](#special-methods-get)
   * [`set`](#special-methods-set)
   * [`delete`](#special-methods-delete)
+  * [`typeof`](#special-methods-typeof)
   * [`EventTarget` methods](#special-eventtarget-methods)
 - [Events](#events)
   * [`valuechange`](#events-valuechange)
@@ -112,6 +113,11 @@ favoriteNumber = 3
 
 Essentially the same as `set`, except it does a `delete` operation. That is, `data.foo.delete()` is identical to `delete data.foo`. Like `set`, this allows you to still delete properties even when picking them off an object.
 
+<a name="special-methods-typeof"></a>
+### `typeof`
+
+Since the `typeof` operator does not work on state variables (they're all proxies, so `typeof` will always evaluate to `object`), this is a way to get the type of a value. `variable.typeof()` is a shorthand for `typeof variable.get()`.
+
 <a name="special-eventtarget-methods"></a>
 ### `EventTarget` methods
 
@@ -173,8 +179,8 @@ data.drinks.addEventListener('propertychange', () => console.log('Drinks changed
 data.drinks.push('water') // "Drinks changed!"
 
 // now we hold a reference to the older array and reassign data.drinks
-const olderReference = data.drinks
-data.drinks = ['alcohol'] // "Drinks changed!"
+const olderReference = stateify(data.drinks.get())
+data.drinks = ['alcohol']
 
 olderReference.push('juice') // doesn't log anything
 data.drinks.push('water') // "Drinks changed!"
@@ -188,8 +194,6 @@ Lastly, we've got the `change` event, which fires whenever either `valuechange` 
 
 <a name="notes"></a>
 ## Notes
-
-- If you pass a state variable to `stateify`, the same state variable will be returned. Basically, doing `stateify(stateify(object))` is okay and returns the same as `stateify(object)`.
 
 - Wrapping the same object in a state variable in different places does _not_ create a different state variable. When providing the same reference, it will result in the exact same state variable. In short, `stateify(object) === stateify(object)`.
 
