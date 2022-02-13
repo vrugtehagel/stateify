@@ -143,7 +143,7 @@ Object.assign(data, {drinks: ['water']})
 <a name="events-propertychange"></a>
 ### `propertychange`
 
-Fires when a property of the value of a property reference changes. Essentially, this means the _contents_ of a value changes. For example:
+Fires when a property of the value of a property reference changes. Essentially, this means the _contents_ of a value changes, while the value itself stays the same (and as such it is only applicable to objects). For example:
 ```js
 import stateify from 'state-variables'
 
@@ -161,7 +161,7 @@ data.preferences.earlGrey = true
 delete data.preferences.blackCoffee
 Object.assign(data.preferences, {delicious: true})
 ```
-The above all fire the `propertychange` event on `data.drinks` and `data.preferences` (on whichever is being modified, of course). Note that these event listeners are _not_ tied to the object itself, but rather to the value of the property reference. This means:
+The above all fire the `propertychange` event on `data.drinks` and `data.preferences` (on whichever is being modified, of course). Note that these event listeners are _not_ tied to the object itself, but rather to the value of the property reference. Essentially,
 ```js
 import stateify from 'state-variables'
 
@@ -173,8 +173,8 @@ data.drinks.addEventListener('propertychange', () => console.log('Drinks changed
 data.drinks.push('water') // "Drinks changed!"
 
 // now we hold a reference to the older array and reassign data.drinks
-const olderReference = data.drinks // "Drinks changed!"
-data.drinks = ['alcohol']
+const olderReference = data.drinks
+data.drinks = ['alcohol'] // "Drinks changed!"
 
 olderReference.push('juice') // doesn't log anything
 data.drinks.push('water') // "Drinks changed!"
