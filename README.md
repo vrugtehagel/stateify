@@ -166,7 +166,7 @@ The above all fire the `propertychange` event on `data.drinks` and `data.prefere
 import stateify from 'state-variables'
 
 const data = stateify({
-    drinks: ['coffee', 'tea', 'milk'],
+    drinks: ['coffee', 'tea', 'milk']
 })
 
 data.drinks.addEventListener('propertychange', () => console.log('Drinks changed!'))

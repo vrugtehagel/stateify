@@ -1,7 +1,7 @@
 const isStateVariableSymbol = Symbol('is-state-variable')
 
 export default function(thing){
-    if(thing != null && thing[stateVariableSymbol]) return thing
+    if(thing != null && thing[isStateVariableSymbol]) return thing
     const root = {thing}
     const reference = new PropertyReference(root, 'thing')
     return reference.proxy
@@ -32,7 +32,11 @@ class PropertyReference extends EventTarget {
         valueOf: () => this.value,
         toString: () => this.value.toString(),
         get: () => this.value,
-        set: value => this.change(() => this.object[this.key] = value),
+        set: value => {
+            if(value != null && value[isStateVariableSymbol])
+                value = value.get()
+            this.change(() => this.object[this.key] = value)
+        },
         delete: () => this.change(() => delete this.object[this.key]),
         addEventListener: (...args) => this.addEventListener(...args),
         removeEventListener: (...args) => this.removeEventListener(...args),
