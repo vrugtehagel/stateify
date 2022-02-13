@@ -1,4 +1,4 @@
-export function(thing){
+export default function(thing){
     const root = {thing}
     const reference = new PropertyReference(root, 'thing')
     return reference.proxy
