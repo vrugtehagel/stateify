@@ -1,10 +1,23 @@
-# state-variables
+# State variables
 
-Intuitive state management.
+A simple way to make state management easy.
 
-Wouldn't it be nice if we could just use a regular object to keep track of our state? And use them as if they were event targets? Well, now you can!
+Wouldn't it be nice if we could just use a regular object to keep track of our state? And use properties as if they were event targets? Well, now you can!
+
+- [Usage](#usage)
+- [The limits](#the-limits)
+- [Special methods](#special-methods)
+  * [`get`](#special-methods-get)
+  * [`set`](#special-methods-set)
+  * [`delete`](#special-methods-delete)
+  * [`EventTarget` methods](#special-eventtarget-methods)
+- [Events](#events)
+  * [`valuechange`](#events-valuechange)
+  * [`propertychange`](#events-propertychange)
+  * [`change`](#events-change)
 
 
+<a name="usage"></a>
 ## Usage
 
 This small script provides you with a function to turn any JSON data into a state variable. For example:
@@ -29,6 +42,7 @@ data.drinks = ['alcohol'] // "drinks changed!"
 ```
 
 
+<a name="the-limits"></a>
 ## The limits
 
 The first thing I should mention is that this only supports valid JSON data, but does not check or convert anything. This means you should not be using any fancy object types, make sure your data does not have any circular references, and does not contain any functions. You can use `JSON.parse(JSON.stringify(data))` to check and/or convert your data.
@@ -59,17 +73,20 @@ console.log(data.favoriteNumber === 23) // false
 ```
 Most of the time, you don't have to worry about any of this because things function almost identical to what they represent.
 
-The proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use `.get()` to read its underlying value).
+The proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
 
 
+<a name="special-methods"></a>
 ## Special methods
 
-These are utility methods any state variable has.
+These are utility methods any state variable has, that are not actually methods of the value they hold.
 
+<a name="special-methods-get"></a>
 ### `get`
 
-Gets the underlying value that a state variable represents. Useful for logging, or if you need to do a `===` comparison.
+Gets the underlying value that a state variable represents. Useful for logging, or if you need to do a `===` comparison, or maybe you just want to unwrap a state variable to go back to a normal object/array/primitive.
 
+<a name="special-methods-set"></a>
 ### `set`
 
 Sets the underlying value. Mostly useful for when picking properties off an object. For example:
@@ -89,18 +106,22 @@ console.log(data.favoriteNumber == 7) // true
 favoriteNumber = 3
 ```
 
+<a name="special-methods-delete"></a>
 ### `delete`
 
-Essentially the same as `set`, except it does a `delete` operation. That is, `data.foo.delete()` is identical to `delete data.foo`. The only difference is that, like `set`, it allows you to still change values when picking properties off an object.
+Essentially the same as `set`, except it does a `delete` operation. That is, `data.foo.delete()` is identical to `delete data.foo`. The only difference is that, like `set`, it allows you to still do this even when picking properties off an object.
 
+<a name="special-eventtarget-methods"></a>
 ### `EventTarget` methods
 
 Specifically, `addEventListener`, `removeEventListener` and `dispatchEvent`. While state variables are not technically instances of `EventTarget`, these methods pass on their arguments to equivalents on an underlying event target.
 
+<a name="events"></a>
 ## Events
 
-There are three events that come with state variables
+There are three events that come with state variables.
 
+<a name="events-valuechange"></a>
 ### `valuechange`
 
 Fires when a property reference is being reassigned. For example, all of the below fire this event on `data.drinks`:
@@ -118,6 +139,7 @@ data.drinks = 'none'
 Object.assign(data, {drinks: ['water']})
 ```
 
+<a name="events-propertychange"></a>
 ### `propertychange`
 
 Fires when a property of the value of a property reference changes. Essentially, this means the _contents_ of a value changes. For example:
@@ -135,8 +157,8 @@ data.drinks[2] = 'water'
 data.drinks.push('juice')
 data.drinks.sort()
 data.preferences.earlGrey = true
-delete data.preferences
-Object.assign(data, {preferences: {}})
+delete data.preferences.blackCoffee
+Object.assign(data.preferences, {delicious: true})
 ```
 The above all fire the `propertychange` event on `data.drinks` and `data.preferences` (on whichever is being modified, of course). Note that these event listeners are _not_ tied to the object itself, but rather to the value of the property reference. This means:
 ```js
@@ -157,5 +179,7 @@ olderReference.push('juice') // doesn't log anything
 data.drinks.push('water') // "Drinks changed!"
 ```
 
+<a name="events-change"></a>
 ### `change`
-Lastly, we've got the `change` event, which fires whenever either `valuechange` or `propertychange` does. This event is identical to `valuechange` for primitive values (because those will never fire `propertychange`). Most often you'll probably want to use this.
+
+Lastly, we've got the `change` event, which fires whenever either `valuechange` or `propertychange` does. This event is identical to `valuechange` for primitive values (because those will never fire `propertychange`). Most often this is probably the event you'll want to use.
