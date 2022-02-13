@@ -189,7 +189,7 @@ Lastly, we've got the `change` event, which fires whenever either `valuechange` 
 <a name="notes"></a>
 ## Notes
 
-- If you pass a state variable to `stateify`, the same state variable will be returned. Basically, doing `stateify(stateify(object))` object twice is okay and returns the same as `stateify(object)`.
+- If you pass a state variable to `stateify`, the same state variable will be returned. Basically, doing `stateify(stateify(object))` is okay and returns the same as `stateify(object)`.
 
 - Wrapping the same object in a state variable in different places does _not_ create a different state variable. When providing the same reference, it will result in the exact same state variable. In short, `stateify(object) === stateify(object)`.
 
