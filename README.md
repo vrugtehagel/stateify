@@ -173,7 +173,7 @@ data.drinks.addEventListener('propertychange', () => console.log('Drinks changed
 data.drinks.push('water') // "Drinks changed!"
 
 // now we hold a reference to the older array and reassign data.drinks
-const olderReference = data.drinks
+const olderReference = data.drinks // "Drinks changed!"
 data.drinks = ['alcohol']
 
 olderReference.push('juice') // doesn't log anything
@@ -189,6 +189,8 @@ Lastly, we've got the `change` event, which fires whenever either `valuechange` 
 <a name="notes"></a>
 ## Notes
 
-- Re-wrapping an object in a state variable does _not_ create a new state variable. When providing the same reference, it will result in the exact same state variable. In short, `stateify(object) === stateify(object)`.
+- If you pass a state variable to `stateify`, the same state variable will be returned. Basically, doing `stateify(stateify(object))` object twice is okay and returns the same as `stateify(object)`.
 
-- Built-in methods on any state variable return the flat (non-state variable) values. So if `data.drinks` is a state variable for `['coffee', 'tea', 'milk']`, then e.g. `data.drinks.sort()` returns a reference to the _underlying_ array, not `data.drinks` itself.
+- Wrapping the same object in a state variable in different places does _not_ create a different state variable. When providing the same reference, it will result in the exact same state variable. In short, `stateify(object) === stateify(object)`.
+
+- Built-in methods on any state variable return non-state variable values. So if `data.drinks` is a state variable for `['coffee', 'tea', 'milk']`, then e.g. `data.drinks.sort()` returns a reference to the _underlying_ array, not `data.drinks` itself.
