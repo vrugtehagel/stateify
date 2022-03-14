@@ -1,4 +1,4 @@
-# State variables
+# Stateify
 
 A simple way to make state management easy.
 
@@ -22,10 +22,10 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
 <a name="usage"></a>
 ## Usage
 
-This small script provides you with a function to turn any JSON data into a state variable. For example:
+This small script provides you with a function to turn any JSON data into a _state variable_. For example:
 
 ```js
-import stateify from 'state-variables'
+import stateify from 'stateify'
 
 const data = stateify({
     drinks: ['coffee', 'tea', 'milk'],
@@ -59,7 +59,7 @@ data.foo.addEventListener('change', () => { ... })
 ```
 `data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases, but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can generally use them as if they actually were. This means you can use them in expressions and even compare them directly using `==`.
 ```js
-import stateify from 'state-variables'
+import stateify from 'stateify'
 
 const data = stateify({
     drinks: ['coffee', 'tea', 'milk'],
@@ -93,7 +93,7 @@ Gets the underlying value that a state variable represents. Useful for logging, 
 
 Sets the underlying value. Mostly useful for when you're picking properties off an object. For example:
 ```js
-import stateify from 'state-variables'
+import stateify from 'stateify'
 
 const data = stateify({
     drinks: ['coffee', 'tea', 'milk'],
@@ -133,7 +133,7 @@ There are three events that come with state variables.
 
 Fires when a property reference is being reassigned. For example, all of the below fire this event on `data.drinks`:
 ```js
-import stateify from 'state-variables'
+import stateify from 'stateify'
 
 const data = stateify({
     drinks: ['coffee', 'tea', 'milk'],
@@ -151,7 +151,7 @@ Object.assign(data, {drinks: ['water']})
 
 Fires when a property of the value of a property reference changes. Essentially, this means the _contents_ of a value changes, while the value itself stays the same (and as such it is only applicable to objects). For example:
 ```js
-import stateify from 'state-variables'
+import stateify from 'stateify'
 
 const data = stateify({
     drinks: ['coffee', 'tea', 'milk'],
@@ -169,7 +169,7 @@ Object.assign(data.preferences, {delicious: true})
 ```
 The above all fire the `propertychange` event on `data.drinks` and `data.preferences` (on whichever is being modified, of course). Note that these event listeners are _not_ tied to the object itself, but rather to the value of the property reference. Essentially,
 ```js
-import stateify from 'state-variables'
+import stateify from 'stateify'
 
 const data = stateify({
     drinks: ['coffee', 'tea', 'milk']
