@@ -7,6 +7,7 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
 - [Usage](#usage)
 - [The limits](#the-limits)
 - [Special methods](#special-methods)
+  * [`is`](#special-methods-is)
   * [`get`](#special-methods-get)
   * [`set`](#special-methods-set)
   * [`delete`](#special-methods-delete)
