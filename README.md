@@ -57,13 +57,14 @@ const data = {
 data.foo.addEventListener('change', () => { ... })
 // TypeError: data.foo.addEventListener is not a function
 ```
-`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases, but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can generally use them as if they actually were. This means you can use them in expressions and even compare them directly using `==`.
+`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases, but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can generally use them as if they actually were. This means you can use them in expressions and in some cases even compare them directly using `==`.
 ```js
 import stateify from 'stateify'
 
 const data = stateify({
     drinks: ['coffee', 'tea', 'milk'],
-    favoriteNumber: 23
+    favoriteNumber: 23,
+    preferences: null
 })
 console.log(data.favoriteNumber + 1) // 24
 console.log(data.favoriteNumber + '1') // "231"
@@ -72,6 +73,10 @@ console.log('I\'ve got ' + data.drinks) // "I've got coffee,tea,milk"
 
 // but, since data.favoriteNumber is a proxy and 23 is not,
 console.log(data.favoriteNumber === 23) // false
+// and things like this also don't work, because comparing an object to
+// an object just checks if they point at the same object in memory
+console.log(data.preferences == null) // false
+console.log(data.preferences.is(null)) // true
 ```
 Most of the time, you don't have to worry about any of this because state variables act like they _are_ the value they hold in nearly all cases.
 
@@ -82,6 +87,22 @@ The proxies do make looking at values in the console a bit more difficult - the 
 ## Special methods
 
 These are utility methods any state variable has, that are not actually methods of their value.
+
+<a name="special-methods-is"></a>
+### `is`
+
+State variables can be a bit hard to compare because in JavaScript, comparing an object to an object simply checks if the operands point at the same thing in memory. This means you can compare a state variable to a primitive such as `'foo'` or `23`, but not to an object, which includes other state variables. For example, `stateify(23) == stateify(23)` returns `false` even though they both represent 23. Instead, you can use `.is()`, which compares the state variable it is called on with the argument. For example:
+```js
+const data = stateify({
+    rgb: ['230', '191', '00'],
+    red: 230,
+    green: 191,
+    blue: 0,
+    alpha: null
+})
+console.log(data.rgb[0].is(data.red)) // true
+console.log(data.alpha.is(null)) // true
+```
 
 <a name="special-methods-get"></a>
 ### `get`

@@ -1,11 +1,15 @@
 const isStateVariableSymbol = Symbol('is-state-variable')
+const roots = new WeakMap()
 
 export default function(thing){
     if(thing != null && thing[isStateVariableSymbol])
         thing = thing.get()
+    if(roots.has(thing)) return roots.get(thing)
     const root = {thing}
     const reference = new PropertyReference(root, 'thing')
-    return reference.proxy
+    const result = reference.proxy
+    if(thing && typeof thing == 'object') roots.set(thing, result)
+    return result
 }
 
 class PropertyReference extends EventTarget {
@@ -32,11 +36,17 @@ class PropertyReference extends EventTarget {
     specials = {
         valueOf: () => this.value,
         toString: () => this.value.toString(),
+        toJSON: () => this.isObject ? this.value : JSON.stringify(this.value),
         get: () => this.value,
         set: value => {
             if(value != null && value[isStateVariableSymbol])
                 value = value.get()
             this.change(() => this.object[this.key] = value)
+        },
+        is: thing => {
+            return thing?.[isStateVariableSymbol]
+                ? this.value == thing.get()
+                : this.value == thing
         },
         delete: () => this.change(() => delete this.object[this.key]),
         typeof: () => typeof this.value,
@@ -114,6 +124,7 @@ class PropertyReference extends EventTarget {
         handler.deleteProperty = (source, property) => {
             if(!this.isPropertyReference(property)) return
             this.proxy[property].delete()
+            return true
         }
         handler.apply = (source, thisArg, ...args) =>
             this.callback.apply(thisArg, ...args)
