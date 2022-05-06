@@ -1,4 +1,4 @@
-const isStateVariableSymbol = Symbol('is-state-variable')
+const isStateVariableSymbol = Symbol()
 const roots = new WeakMap()
 let tracking
 
