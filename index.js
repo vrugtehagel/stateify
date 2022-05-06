@@ -1,7 +1,26 @@
 const isStateVariableSymbol = Symbol('is-state-variable')
 const roots = new WeakMap()
+let tracking
 
-export default function(thing){
+function track(callback, value){
+    tracking = []
+    const result = callback()
+    value.set(result)
+    tracking.push(result)
+    const controller = new AbortController()
+    const {signal} = controller
+    const onchange = () => {
+        controller.abort()
+        track(callback, value)
+    }
+    for(const variable of tracking)
+        variable.addEventListener?.('change', onchange, {signal})
+    tracking = null
+    return value
+}
+
+export default function stateify(thing){
+    if(typeof thing == 'function') return track(thing, stateify({}).value)
     if(thing != null && thing[isStateVariableSymbol])
         thing = thing.get()
     if(roots.has(thing)) return roots.get(thing)
@@ -15,21 +34,6 @@ export default function(thing){
 class PropertyReference extends EventTarget {
     static map = new WeakMap()
     static parentMap = new WeakMap()
-    static proxyActions = [
-        'apply',
-        'construct',
-        'defineProperty',
-        'deleteProperty',
-        'get',
-        'getOwnPropertyDescriptor',
-        'getPrototypeOf',
-        'has',
-        'isExtensible',
-        'ownKeys',
-        'preventExtensions',
-        'set',
-        'setPrototypeOf'
-    ]
     object
     key
     callback
@@ -39,8 +43,7 @@ class PropertyReference extends EventTarget {
         toJSON: () => this.isObject ? this.value : JSON.stringify(this.value),
         get: () => this.value,
         set: value => {
-            if(value != null && value[isStateVariableSymbol])
-                value = value.get()
+            if(value?.[isStateVariableSymbol]) value = value.get()
             this.change(() => this.object[this.key] = value)
         },
         is: thing => {
@@ -112,25 +115,23 @@ class PropertyReference extends EventTarget {
     }
 
     initialize(){
-        const source = this.callback ? function(){} : {}
-        const handler = {}
-        handler.get = (source, property) =>
-            this.get(property)
-        handler.set = (source, property, value) => {
+        const source = this.callback ?? {}
+        const custom = {}
+        custom.get = (source, property) => this.get(property)
+        custom.set = (source, property, value) => {
             if(!this.isPropertyReference(property)) return true
             this.proxy[property].set(value)
             return true
         }
-        handler.deleteProperty = (source, property) => {
+        custom.deleteProperty = (source, property) => {
             if(!this.isPropertyReference(property)) return
             this.proxy[property].delete()
             return true
         }
-        handler.apply = (source, thisArg, ...args) =>
-            this.callback.apply(thisArg, ...args)
-        for(const action of PropertyReference.proxyActions)
-            handler[action] ??= (source, ...args) =>
-                Reflect[action](this.value, ...args)
+        custom.apply = (source, ...args) => this.callback.apply(...args)
+        const get = (source, property) => custom[property] ??
+            ((source, ...args) => Reflect[property](this.value, ...args))
+        const handler = new Proxy(custom, {get})
         this.proxy = new Proxy(source, handler)
     }
 
@@ -143,8 +144,9 @@ class PropertyReference extends EventTarget {
         const value = this.getFlattenedValue(property)
         if(!this.isPropertyReference(property)) return value
         const object = this.value
-        const reference = new PropertyReference(object, property, callback)
-        return reference.proxy
+        const {proxy} = new PropertyReference(object, property, callback)
+        tracking?.push(proxy)
+        return proxy
     }
 
     getFlattenedValue(property){

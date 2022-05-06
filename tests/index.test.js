@@ -122,3 +122,25 @@ Deno.test('custom events are fired', () => {
     state.foo.dispatchEvent(event)
     assert(calls == 1)
 })
+Deno.test('composed variable', () => {
+    let calls = 0
+    const state = stateify({
+        index: 2,
+        array: ['foo', 'bar', 'baz']
+    })
+    const composed = stateify(() => state.array[state.index])
+    composed.addEventListener('change', () => calls++)
+    assert(composed.is('baz'))
+    state.index = 1
+    assert(composed.is('bar'))
+    assert(calls == 1)
+    state.array[1] = 'qux'
+    assert(composed.is('qux'))
+    assert(calls == 2)
+    state.index = 0
+    assert(composed.is('foo'))
+    assert(calls == 3)
+    state.array[1] = 'bar'
+    assert(composed.is('foo'))
+    assert(calls == 3)
+})

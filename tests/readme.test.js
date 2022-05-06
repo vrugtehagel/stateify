@@ -27,6 +27,21 @@ Deno.test('limits', () => {
     assert(data.preferences != null)
     assert(data.preferences.is(null))
 })
+Deno.test('composed state variables', () => {
+    let calls = 0
+    const state = stateify({
+        drinks: ['coffee', 'tea', 'milk'],
+        favoriteIndex: 1
+    })
+    const favoriteDrink = stateify(() => state.drinks[state.favoriteIndex])
+    favoriteDrink.addEventListener('change', () => calls++)
+    state.drinks[1] = 'water'
+    assert(calls == 1)
+    assert(favoriteDrink == 'water')
+    state.favoriteIndex = 0
+    assert(calls == 2)
+    assert(favoriteDrink == 'coffee')
+})
 Deno.test('is', () => {
     const data = stateify({
         rgb: ['230', '191', '00'],

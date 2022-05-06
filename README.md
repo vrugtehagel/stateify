@@ -6,6 +6,7 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
 
 - [Usage](#usage)
 - [The limits](#the-limits)
+- [Composed state variables](#composed-state-variables)
 - [Special methods](#special-methods)
   * [`is`](#special-methods-is)
   * [`get`](#special-methods-get)
@@ -83,6 +84,24 @@ Most of the time, you don't have to worry about any of this because state variab
 
 The proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
 
+
+<a name="composed-state-variables"></a>
+## Composed state variables
+
+Sometimes you'll want to have a value that is dependent on multiple state variables available to you as a state variable itself. Not one you manually change, but one that is composed of others. You can do this by, instead of providing a JSON structure to `stateify`, providing it with a callback. This callback will create a state variable for you that gets updated anytime its stateified dependencies change. For example:
+```js
+const state = stateify({
+    drinks: ['coffee', 'tea', 'milk'],
+    favoriteIndex: 1
+})
+const favoriteDrink = stateify(() => state.drinks[state.favoriteIndex])
+favoriteDrink.addEventListener('change', () => console.log('changed!'))
+state.drinks[1] = 'water' // changed!
+console.log(favoriteDrink == 'water') // true
+state.favoriteIndex = 0 // changed!
+console.log(favoriteDrink == 'coffee') // true
+```
+While you can still change the composed variable's value using methods like `set` and `delete`, you should not do this; the variable will update any time its stateified dependencies change, even if it has been set to a different value manually.
 
 <a name="special-methods"></a>
 ## Special methods
