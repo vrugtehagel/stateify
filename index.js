@@ -3,10 +3,10 @@ const roots = new WeakMap()
 let tracking
 
 function track(callback, value){
-    tracking = []
+    tracking = new Set
     const result = callback()
     value.set(result)
-    tracking.push(result)
+    if(result?.[isStateVariableSymbol]) tracking.add(result)
     const controller = new AbortController()
     const {signal} = controller
     const onchange = () => {
@@ -24,8 +24,8 @@ export default function stateify(thing){
     if(thing != null && thing[isStateVariableSymbol])
         thing = thing.get()
     if(roots.has(thing)) return roots.get(thing)
-    const root = {thing}
-    const reference = new PropertyReference(root, 'thing')
+    const root = {_: thing}
+    const reference = new PropertyReference(root, '_')
     const result = reference.proxy
     if(thing && typeof thing == 'object') roots.set(thing, result)
     return result
@@ -145,7 +145,7 @@ class PropertyReference extends EventTarget {
         if(!this.isPropertyReference(property)) return value
         const object = this.value
         const {proxy} = new PropertyReference(object, property, callback)
-        tracking?.push(proxy)
+        tracking?.add(proxy)
         return proxy
     }
 

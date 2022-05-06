@@ -59,7 +59,7 @@ const data = {
 data.foo.addEventListener('change', () => { ... })
 // TypeError: data.foo.addEventListener is not a function
 ```
-`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases, but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can generally use them as if they actually were. This means you can use them in expressions and in some cases even compare them directly using `==`.
+`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases, but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can generally use them (booleans not so much, more on that below) as if they actually were. This means you can use them in expressions and in some cases even compare them directly using `==`.
 ```js
 import stateify from 'stateify'
 
@@ -80,9 +80,11 @@ console.log(data.favoriteNumber === 23) // false
 console.log(data.preferences == null) // false
 console.log(data.preferences.is(null)) // true
 ```
-Most of the time, you don't have to worry about any of this because state variables act like they _are_ the value they hold in nearly all cases.
+Most of the time, you don't have to worry about any of this because state variables act like they _are_ the value they hold.
 
-The proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
+One limitation I should explicitly mention are boolean expression. Be careful with these; e.g. even if `foo` is a state variable with the value `false`, `''`, `0`, or `null`, `!foo` will be `false` since `foo` is a proxy, and using that proxy in a boolean expression does not trigger type coercion. This includes operators like `&&` and `||`.
+
+Additionally, the proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
 
 
 <a name="composed-state-variables"></a>

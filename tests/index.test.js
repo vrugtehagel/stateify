@@ -144,3 +144,23 @@ Deno.test('composed variable', () => {
     assert(composed.is('foo'))
     assert(calls == 3)
 })
+Deno.test('composed variable returning plain value', () => {
+    const state = stateify({
+        index: 2,
+        array: ['foo', 'bar', 'baz']
+    })
+    const composed = stateify(() => {
+        const isFoo = state.array[state.index] == 'foo'
+        const isBar = state.array[state.index] == 'bar'
+        return !isFoo && !isBar ? null : {isFoo, isBar}
+    })
+    assert(composed.is(null))
+    state.index = 1
+    assert(!composed.isFoo.get() && composed.isBar.get())
+    state.array[1] = 'qux'
+    assert(composed.is(null))
+    state.index = 0
+    assert(composed.isFoo.get() && !composed.isBar.get())
+    state.array[1] = 'bar'
+    assert(composed.isFoo.get() && !composed.isBar.get())
+})
