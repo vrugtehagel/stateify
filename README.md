@@ -12,12 +12,10 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
   * [`get`](#special-methods-get)
   * [`set`](#special-methods-set)
   * [`delete`](#special-methods-delete)
+  * [`free`](#special-methods-free)
   * [`typeof`](#special-methods-typeof)
   * [`EventTarget` methods](#special-eventtarget-methods)
-- [Events](#events)
-  * [`valuechange`](#events-valuechange)
-  * [`propertychange`](#events-propertychange)
-  * [`change`](#events-change)
+- [The `change` event](#event)
 - [Notes](#notes)
 
 
@@ -36,22 +34,23 @@ const data = stateify({
 ```
 Then, you can listen to changes to properties simply by adding an event listener like you would with an event target:
 ```js
-data.drinks.addEventListener('change', () => {
+data.addEventListener('change', ({detail}) => {
     // update component or whatever you need to do
-    console.log('drinks changed!')
+    console.log(`${detail.key} changed!`)
 })
 
 data.drinks.push('water') // "drinks changed!"
 data.drinks = ['alcohol'] // "drinks changed!"
+delete data.favoriteNumber // "favoriteNumber changed!"
 ```
 
 
 <a name="the-limits"></a>
 ## The limits
 
-The first thing I should mention is that this only supports valid JSON data, but does not check or convert anything. This means you should not be using any fancy object types, make sure your data does not have any circular references, and does not contain any functions. You can use `JSON.parse(JSON.stringify(data))` to check and/or convert your data.
+Stateify is intended for state management, and state management only. Anything you provide to the `stateify` function should be data only, no functions. Stateify was created with the intention of stateifying JSON data, so while it _can_ work with more complex data structures, it is not guaranteed to. Specifically, this is referring to objects with getters and setters, class instances, circular references, etcetera.
 
-Secondly, since I refuse to add properties or methods to prototypes of built-in objects, necessarily the state variables you get are not _actually_ the values they represent. For example, normally, we'd have this:
+Secondly, since I believe adding properties or methods to prototypes of built-in objects is a no-go, necessarily the state variables you get are not _actually_ the values they represent. For example, normally, we'd have this:
 ```js
 const data = {
     foo: 'bar'
@@ -59,7 +58,7 @@ const data = {
 data.foo.addEventListener('change', () => { ... })
 // TypeError: data.foo.addEventListener is not a function
 ```
-`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases, but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can generally use them (booleans not so much, more on that below) as if they actually were. This means you can use them in expressions and in some cases even compare them directly using `==`.
+`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases (through type coercion), but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can use state variables strings and numbers like as if they actually were the string or number they represent. If you're uncomfortable with type coercion, you can always read the type of the variables or "unwrap" the state variable to work with the actual value. However the type coercion, means you can use some state variable in expressions and even compare them directly using `==`.
 ```js
 import stateify from 'stateify'
 
@@ -80,9 +79,7 @@ console.log(data.favoriteNumber === 23) // false
 console.log(data.preferences == null) // false
 console.log(data.preferences.is(null)) // true
 ```
-Most of the time, you don't have to worry about any of this because state variables act like they _are_ the value they hold.
-
-One limitation I should explicitly mention are boolean expression. Be careful with these; e.g. even if `foo` is a state variable with the value `false`, `''`, `0`, or `null`, `!foo` will be `false` since `foo` is a proxy, and using that proxy in a boolean expression does not trigger type coercion. This includes operators like `&&` and `||`.
+One limitation I should explicitly mention are boolean expression. Be careful with these; e.g. even if `foo` is a state variable with the value `false`, `''`, `0`, or `null`, `!foo` will be `false` since `foo` is a proxy, and using that proxy in a boolean expression does not trigger type coercion. This includes operators like `&&` and `||`. If you need to check for falsyness, use [`.get()`](#special-methods-get).
 
 Additionally, the proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
 
@@ -90,7 +87,7 @@ Additionally, the proxies do make looking at values in the console a bit more di
 <a name="composed-state-variables"></a>
 ## Composed state variables
 
-Sometimes you'll want to have a value that is dependent on multiple state variables available to you as a state variable itself. Not one you manually change, but one that is composed of others. You can do this by, instead of providing a JSON structure to `stateify`, providing it with a callback. This callback will create a state variable for you that gets updated anytime its stateified dependencies change. For example:
+Sometimes you'll want to have a value that is dependent on multiple state variables available to you as a state variable itself. Not one you manually change, but one that is composed of others. You can do this by, instead of providing a data structure to `stateify`, providing it with a callback. This callback will create a state variable for you that gets updated anytime its stateified dependencies change. For example:
 ```js
 const state = stateify({
     drinks: ['coffee', 'tea', 'milk'],
@@ -113,7 +110,7 @@ These are utility methods any state variable has, that are not actually methods 
 <a name="special-methods-is"></a>
 ### `is`
 
-State variables can be a bit hard to compare because in JavaScript, comparing an object to an object simply checks if the operands point at the same thing in memory. This means you can compare a state variable to a primitive such as `'foo'` or `23`, but not to an object, which includes other state variables. For example, `stateify(23) == stateify(23)` returns `false` even though they both represent 23. Instead, you can use `.is()`, which compares the state variable it is called on with the argument. For example:
+State variables can be a bit hard to compare because in JavaScript, comparing an object to an object simply checks if the operands point at the same thing in memory. This means you can compare a state variable to a primitive such as `'foo'` or `23` (because it triggers type coercion), but not to an object, which includes `null` and other state variables. For example, `stateify(23) == stateify(23)` returns `false` even though they both represent 23. Instead, you can use `.is()`, which compares the state variable it is called on with the argument. For example:
 ```js
 const data = stateify({
     rgb: ['230', '191', '00'],
@@ -125,6 +122,7 @@ const data = stateify({
 console.log(data.rgb[0].is(data.red)) // true
 console.log(data.alpha.is(null)) // true
 ```
+Note that this is a _loose_ comparison; for strict comparison, simply use `variable.get() === value`
 
 <a name="special-methods-get"></a>
 ### `get`
@@ -156,6 +154,11 @@ favoriteNumber = 3
 
 Essentially the same as `set`, except it does a `delete` operation. That is, `data.foo.delete()` is identical to `delete data.foo`. Like `set`, this allows you to still delete properties even when picking them off an object.
 
+<a name="special-methods-free"></a>
+### `free`
+
+State variables are intended to handle changes well, and so stateify tries to 
+
 <a name="special-methods-typeof"></a>
 ### `typeof`
 
@@ -166,78 +169,36 @@ Since the `typeof` operator does not work on state variables (they're all proxie
 
 Specifically, `addEventListener`, `removeEventListener` and `dispatchEvent`. While state variables are not technically instances of `EventTarget`, these methods pass on their arguments to equivalents on an underlying event target.
 
-<a name="events"></a>
-## Events
+<a name="event"></a>
+## The `change` event
 
-There are three events that come with state variables.
-
-<a name="events-valuechange"></a>
-### `valuechange`
-
-Fires when a property reference is being reassigned. For example, all of the below fire this event on `data.drinks`:
+The `change` event is really the main feature of this library. It allows you to listen to changes anywhere in your stateified data structure. Simply listen to the values directly, like so:
 ```js
-import stateify from 'stateify'
-
-const data = stateify({
-    drinks: ['coffee', 'tea', 'milk'],
-    favoriteNumber: 23
-})
-
-data.drinks = []
-delete data.drinks
-data.drinks = 'none'
-Object.assign(data, {drinks: ['water']})
-```
-
-<a name="events-propertychange"></a>
-### `propertychange`
-
-Fires when a property of the value of a property reference changes. Essentially, this means the _contents_ of a value changes, while the value itself stays the same (and as such it is only applicable to objects). For example:
-```js
-import stateify from 'stateify'
-
-const data = stateify({
-    drinks: ['coffee', 'tea', 'milk'],
-    preferences: {
-        blackCoffee: false
-    }
-})
-
-data.drinks[2] = 'water'
-data.drinks.push('juice')
-data.drinks.sort()
-data.preferences.earlGrey = true
-delete data.preferences.blackCoffee
-Object.assign(data.preferences, {delicious: true})
-```
-The above all fire the `propertychange` event on `data.drinks` and `data.preferences` (on whichever is being modified, of course). Note that these event listeners are _not_ tied to the object itself, but rather to the value of the property reference. Essentially,
-```js
-import stateify from 'stateify'
-
-const data = stateify({
+const state = stateify({
     drinks: ['coffee', 'tea', 'milk']
 })
-
-data.drinks.addEventListener('propertychange', () => console.log('Drinks changed!'))
-data.drinks.push('water') // "Drinks changed!"
-
-// now we hold a reference to the older array and reassign data.drinks
-const olderReference = stateify(data.drinks.get())
-data.drinks = ['alcohol']
-
-olderReference.push('juice') // doesn't log anything
-data.drinks.push('water') // "Drinks changed!"
+state.addEventListener('change', () => console.log('state changed!'))
+state.drinks.sort() // state changed!
 ```
+The event object here has a `detail` property (like a normal `CustomEvent`) with some data on it; it contains the new value (`detail.value`), and what it was before it changed (`detail.oldValue`). Additionally, it contains the state variable that fired the change (`detail.source`), as well as the parent object (`detail.parent`) and the key it is under (`detail.key`). This means `detail.parent[detail.key] === detail.source`. Note that in the case of the root changing, `detail.parent` and `detail.key` will both be `null`.
 
-<a name="events-change"></a>
-### `change`
-
-Lastly, we've got the `change` event, which fires whenever either `valuechange` or `propertychange` does. This event is identical to `valuechange` for primitive values (because those will never fire `propertychange`). Most often this is probably the event you'll want to use.
-
+The event bubbles all the way up to the root of the stateified data structure. You can use the above properties on the `event.detail` object to figure out what fired the event. You may also stop propagation like you can normal events, but not through `event.stopPropagation()`; this function is instead available on the `detail` object, so one could do:
+```js
+const state = stateify({
+    drinks: ['coffee', 'tea', 'milk']
+})
+state.addEventListener('change', () => console.log('state changed!'))
+state.drinks.addEventListener('change', ({detail}) => {
+    if(detail.value == 'beer') detail.stopPropagation()
+})
+state.drinks[0] = 'wine' // state changed!
+state.drinks[0] = 'beer'
+state.drinks[0] = 'whiskey' // state changed!
+```
 
 <a name="notes"></a>
 ## Notes
 
-- Wrapping the same object in a state variable in different places does _not_ create a different state variable. When providing the same reference, it will result in the exact same state variable. In short, `stateify(object) === stateify(object)`.
+- State variable are always relative to the root of what you initially passed to `stateify`. This means e.g. `stateify({foo: {bar: 23}}).foo` is not the same as `stateify({bar: 23})`.
 
 - Built-in methods on any state variable return non-state variable values. So if `data.drinks` is a state variable for `['coffee', 'tea', 'milk']`, then e.g. `data.drinks.sort()` returns a reference to the _underlying_ array, not `data.drinks` itself.

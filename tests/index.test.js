@@ -20,15 +20,28 @@ Deno.test('number coercion', () => {
     assert(state.number == 23)
     assert(state.array[0] == 1)
 })
-Deno.test('non-duplication behavior', () => {
-    assert(stateify(original) == state)
+Deno.test('duplication behavior', () => {
+    assert(stateify(original) != state)
     assert(stateify(original.object) != state.object)
     assert(stateify(original.object).is(state.object))
+})
+Deno.test('single-value stateification', () => {
+    const number = stateify(123)
+    let calls = 0
+    number.addEventListener('change', () => calls++)
+    assert(number.get() == 123)
+    assert(number.is(123))
+    assert(number == 123)
+    assert(number.typeof() == 'number')
+    assert(!number.free())
+    number.set(456)
+    assert(number == 456)
+    assert(calls == 1)
 })
 Deno.test('JSON stringify', () => {
     assert(JSON.stringify(original) == JSON.stringify(state))
 })
-Deno.test('changes to state variable changes original', () => {
+Deno.test('changes affect original', () => {
     state.number = 33
     assert(original.number == 33)
     state.number = 23
@@ -68,39 +81,24 @@ Deno.test('.is()', () => {
     assert(array.is(original.array))
     assert(array.is('1,2,3'))
 })
-Deno.test('valuechange fires properly', () => {
-    let calls = 0
-    const state = stateify({foo: ['a', 'b', 'c']})
-    state.foo.addEventListener('valuechange', event => {
-        const {value, oldValue} = event.detail
-        calls++
-        assert(value == '1,2,3')
-        assert(oldValue == 'A,b,a')
-    })
-    state.foo.reverse()
-    state.foo[0] = 'A'
-    assert(calls == 0)
-    state.foo = [1, 2, 3]
-    assert(calls == 1)
-})
-Deno.test('propertychange fires properly', () => {
-    let calls = 0
-    const array = ['a', 'b', 'c']
-    const state = stateify({foo: array})
-    state.foo.addEventListener('propertychange', event => {
-        const {property, unknown} = event.detail
-        calls++
-        if(calls == 1) assert(property == '0')
-        if(calls == 2) assert(unknown == true)
-    })
-    state.foo = [1, 2, 3]
-    assert(calls == 0)
-    state.foo[0] = 4
-    assert(calls == 1)
-    state.foo.reverse()
-    assert(calls == 2)
-    array[0] = 'A'
-    assert(calls == 2)
+Deno.test('.free()', () => {
+    const state = stateify({foo: {bar: {baz: 23}}})
+    const {baz} = state.foo.bar
+    assert(baz == 23)
+    assert(!baz.free())
+    state.foo = null
+    assert(baz.is(undefined))
+    assert(baz.free())
+    state.foo = {bar: {baz: 44}}
+    assert(baz == 44)
+    assert(!baz.free())
+
+    const {qux} = state.foo.nah.fah
+    assert(qux.is(undefined))
+    assert(qux.free())
+    state.foo = {nah: {fah: {qux: {quux: 'abc'}}}}
+    assert(!qux.free())
+    assert('quux' in qux)
 })
 Deno.test('change fires properly', () => {
     let calls = 0
@@ -113,6 +111,42 @@ Deno.test('change fires properly', () => {
     state.foo[0] = 4
     assert(calls == 3)
 })
+Deno.test('change fires properly (deep)', () => {
+    let calls = 0
+    const state = stateify({foo: {bar: [{baz: 23}]}})
+    state.addEventListener('change', () => calls++)
+    state.foo.bar[0].baz = 44
+    assert(calls == 1)
+    state.foo.nah = {fah: 'abc'}
+    assert(calls == 2)
+    state.set(null)
+    assert(calls == 3)
+})
+Deno.test('change event detail is correct', () => {
+    let calls = 0
+    const original = {foo: {bar: 23}}
+    const state = stateify(original)
+    state.addEventListener('change', ({detail}) => {
+        calls++
+        const {value, oldValue, source, parent, key} = detail
+        if(calls == 1){
+            assert(value === 44)
+            assert(oldValue === 23)
+            assert(source === state.foo.bar)
+            assert(parent === state.foo)
+            assert(key === 'bar')
+        }
+        if(calls == 2){
+            assert(value === 'bonjour~')
+            assert(oldValue === original)
+            assert(source === state)
+            assert(parent === null)
+            assert(key === null)
+        }
+    })
+    state.foo.bar = 44
+    state.set('bonjour~')
+})
 Deno.test('custom events are fired', () => {
     let calls = 0
     const state = stateify({foo: ['a', 'b', 'c']})
@@ -120,6 +154,18 @@ Deno.test('custom events are fired', () => {
     state.foo.addEventListener(type, () => calls++)
     const event = new CustomEvent(type)
     state.foo.dispatchEvent(event)
+    assert(calls == 1)
+})
+Deno.test('event propagation can be stopped', () => {
+    let calls = 0
+    const state = stateify({foo: {bar: 23}})
+    state.addEventListener('change', () => calls++)
+    state.foo.bar = 44
+    assert(calls == 1)
+    state.foo.addEventListener('change', ({detail}) => {
+        detail.stopPropagation()
+    })
+    state.foo.bar = 7
     assert(calls == 1)
 })
 Deno.test('composed variable', () => {
