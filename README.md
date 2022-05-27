@@ -6,7 +6,7 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
 
 - [Usage](#usage)
 - [The limits](#the-limits)
-- [Composed state variables](#composed-state-variables)
+- [The `change` event](#event)
 - [Special methods](#special-methods)
   * [`is`](#special-methods-is)
   * [`get`](#special-methods-get)
@@ -15,7 +15,7 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
   * [`free`](#special-methods-free)
   * [`typeof`](#special-methods-typeof)
   * [`EventTarget` methods](#special-eventtarget-methods)
-- [The `change` event](#event)
+- [Composed state variables](#composed-state-variables)
 - [Notes](#notes)
 
 
@@ -83,24 +83,32 @@ One limitation I should explicitly mention are boolean expression. Be careful wi
 
 Additionally, the proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
 
+<a name="event"></a>
+## The `change` event
 
-<a name="composed-state-variables"></a>
-## Composed state variables
-
-Sometimes you'll want to have a value that is dependent on multiple state variables available to you as a state variable itself. Not one you manually change, but one that is composed of others. You can do this by, instead of providing a data structure to `stateify`, providing it with a callback. This callback will create a state variable for you that gets updated anytime its stateified dependencies change. For example:
+The `change` event is really the main feature of this library. It allows you to listen to changes anywhere in your stateified data structure. Simply listen to the values directly, like so:
 ```js
 const state = stateify({
-    drinks: ['coffee', 'tea', 'milk'],
-    favoriteIndex: 1
+    drinks: ['coffee', 'tea', 'milk']
 })
-const favoriteDrink = stateify(() => state.drinks[state.favoriteIndex])
-favoriteDrink.addEventListener('change', () => console.log('changed!'))
-state.drinks[1] = 'water' // changed!
-console.log(favoriteDrink == 'water') // true
-state.favoriteIndex = 0 // changed!
-console.log(favoriteDrink == 'coffee') // true
+state.addEventListener('change', () => console.log('state changed!'))
+state.drinks.sort() // state changed!
 ```
-While you can still change the composed variable's value using methods like `set` and `delete`, you should not do this; the variable will update any time its stateified dependencies change, even if it has been set to a different value manually.
+The event object here has a `detail` property (like a normal `CustomEvent`) with some data on it; it contains the new value (`detail.value`), and what it was before it changed (`detail.oldValue`). Additionally, it contains the state variable that fired the change (`detail.source`), as well as the parent object (`detail.parent`) and the key it is under (`detail.key`). This means `detail.parent[detail.key] === detail.source`. Note that in the case of the root changing, `detail.parent` and `detail.key` will both be `null`.
+
+The event bubbles all the way up to the root of the stateified data structure. You can use the above properties on the `event.detail` object to figure out what fired the event. You may also stop propagation like you can normal events, but not through `event.stopPropagation()`; this function is instead available on the `detail` object, so one could do:
+```js
+const state = stateify({
+    drinks: ['coffee', 'tea', 'milk']
+})
+state.addEventListener('change', () => console.log('state changed!'))
+state.drinks.addEventListener('change', ({detail}) => {
+    if(detail.value == 'beer') detail.stopPropagation()
+})
+state.drinks[0] = 'wine' // state changed!
+state.drinks[0] = 'beer'
+state.drinks[0] = 'whiskey' // state changed!
+```
 
 <a name="special-methods"></a>
 ## Special methods
@@ -169,32 +177,23 @@ Since the `typeof` operator does not work on state variables (they're all proxie
 
 Specifically, `addEventListener`, `removeEventListener` and `dispatchEvent`. While state variables are not technically instances of `EventTarget`, these methods pass on their arguments to equivalents on an underlying event target.
 
-<a name="event"></a>
-## The `change` event
+<a name="composed-state-variables"></a>
+## Composed state variables
 
-The `change` event is really the main feature of this library. It allows you to listen to changes anywhere in your stateified data structure. Simply listen to the values directly, like so:
+Sometimes you'll want to have a value that is dependent on multiple state variables available to you as a state variable itself. Not one you manually change, but one that is composed of others. You can do this by, instead of providing a data structure to `stateify`, providing it with a callback. This callback will create a state variable for you that gets updated anytime its stateified dependencies change. For example:
 ```js
 const state = stateify({
-    drinks: ['coffee', 'tea', 'milk']
+    drinks: ['coffee', 'tea', 'milk'],
+    favoriteIndex: 1
 })
-state.addEventListener('change', () => console.log('state changed!'))
-state.drinks.sort() // state changed!
+const favoriteDrink = stateify(() => state.drinks[state.favoriteIndex])
+favoriteDrink.addEventListener('change', () => console.log('changed!'))
+state.drinks[1] = 'water' // changed!
+console.log(favoriteDrink == 'water') // true
+state.favoriteIndex = 0 // changed!
+console.log(favoriteDrink == 'coffee') // true
 ```
-The event object here has a `detail` property (like a normal `CustomEvent`) with some data on it; it contains the new value (`detail.value`), and what it was before it changed (`detail.oldValue`). Additionally, it contains the state variable that fired the change (`detail.source`), as well as the parent object (`detail.parent`) and the key it is under (`detail.key`). This means `detail.parent[detail.key] === detail.source`. Note that in the case of the root changing, `detail.parent` and `detail.key` will both be `null`.
-
-The event bubbles all the way up to the root of the stateified data structure. You can use the above properties on the `event.detail` object to figure out what fired the event. You may also stop propagation like you can normal events, but not through `event.stopPropagation()`; this function is instead available on the `detail` object, so one could do:
-```js
-const state = stateify({
-    drinks: ['coffee', 'tea', 'milk']
-})
-state.addEventListener('change', () => console.log('state changed!'))
-state.drinks.addEventListener('change', ({detail}) => {
-    if(detail.value == 'beer') detail.stopPropagation()
-})
-state.drinks[0] = 'wine' // state changed!
-state.drinks[0] = 'beer'
-state.drinks[0] = 'whiskey' // state changed!
-```
+While you can still change the composed variable's value using methods like `set` and `delete`, you should not do this; the variable will update any time its stateified dependencies change, even if it has been set to a different value manually.
 
 <a name="notes"></a>
 ## Notes

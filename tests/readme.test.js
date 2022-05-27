@@ -31,41 +31,6 @@ Deno.test('limits', () => {
     assert(data.preferences != null)
     assert(data.preferences.is(null))
 })
-Deno.test('composed state variables', () => {
-    let calls = 0
-    const state = stateify({
-        drinks: ['coffee', 'tea', 'milk'],
-        favoriteIndex: 1
-    })
-    const favoriteDrink = stateify(() => state.drinks[state.favoriteIndex])
-    favoriteDrink.addEventListener('change', () => calls++)
-    state.drinks[1] = 'water'
-    assert(calls == 1)
-    assert(favoriteDrink == 'water')
-    state.favoriteIndex = 0
-    assert(calls == 2)
-    assert(favoriteDrink == 'coffee')
-})
-Deno.test('is', () => {
-    const data = stateify({
-        rgb: ['230', '191', '00'],
-        red: 230,
-        green: 191,
-        blue: 0,
-        alpha: null
-    })
-    assert(data.rgb[0].is(data.red))
-    assert(data.alpha.is(null))
-})
-Deno.test('set', () => {
-    const data = stateify({
-        drinks: ['coffee', 'tea', 'milk'],
-        favoriteNumber: 23
-    })
-    let {favoriteNumber} = data
-    favoriteNumber.set(7)
-    assert(data.favoriteNumber == 7)
-})
 Deno.test('the change event (1)', () => {
     let calls = 0
     const state = stateify({
@@ -107,6 +72,41 @@ Deno.test('the change event (3)', () => {
     assert(calls == 1)
     state.drinks[0] = 'whiskey'
     assert(calls == 2)
+})
+Deno.test('is', () => {
+    const data = stateify({
+        rgb: ['230', '191', '00'],
+        red: 230,
+        green: 191,
+        blue: 0,
+        alpha: null
+    })
+    assert(data.rgb[0].is(data.red))
+    assert(data.alpha.is(null))
+})
+Deno.test('set', () => {
+    const data = stateify({
+        drinks: ['coffee', 'tea', 'milk'],
+        favoriteNumber: 23
+    })
+    let {favoriteNumber} = data
+    favoriteNumber.set(7)
+    assert(data.favoriteNumber == 7)
+})
+Deno.test('composed state variables', () => {
+    let calls = 0
+    const state = stateify({
+        drinks: ['coffee', 'tea', 'milk'],
+        favoriteIndex: 1
+    })
+    const favoriteDrink = stateify(() => state.drinks[state.favoriteIndex])
+    favoriteDrink.addEventListener('change', () => calls++)
+    state.drinks[1] = 'water'
+    assert(calls == 1)
+    assert(favoriteDrink == 'water')
+    state.favoriteIndex = 0
+    assert(calls == 2)
+    assert(favoriteDrink == 'coffee')
 })
 Deno.test('notes (1)', () => {
     const drinks = ['coffee', 'tea', 'milk']
