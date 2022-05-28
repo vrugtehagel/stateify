@@ -39,9 +39,12 @@ data.addEventListener('change', ({detail}) => {
     console.log(`${detail.key} changed!`)
 })
 
+const firstDrink = data.drinks[0]
+console.log(firstDrink == 'coffee') // true
 data.drinks.push('water') // "drinks changed!"
 data.drinks = ['alcohol'] // "drinks changed!"
 delete data.favoriteNumber // "favoriteNumber changed!"
+console.log(firstDrink == 'alcohol') // true
 ```
 
 

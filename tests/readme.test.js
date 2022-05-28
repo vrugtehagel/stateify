@@ -13,9 +13,13 @@ Deno.test('usage', () => {
         if(calls == 2) assert(detail.key == 'drinks')
         if(calls == 3) assert(detail.key == 'favoriteNumber')
     })
+
+    const firstDrink = data.drinks[0]
+    assert(firstDrink == 'coffee')
     data.drinks.push('water')
     data.drinks = ['alcohol']
     delete data.favoriteNumber
+    assert(firstDrink == 'alcohol')
 })
 Deno.test('limits', () => {
     const data = stateify({
