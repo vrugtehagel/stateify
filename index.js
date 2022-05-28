@@ -64,9 +64,9 @@ class PropertyReference {
         custom.deleteProperty = (source, key) => this.proxy[key].delete()
         custom.apply = (source, ...args) => this.callback.apply(...args)
         const get = (source, key) => custom[key] ??
-            ((source, ...args) => Reflect.has(this.value, ...args))
+            ((source, ...args) => Reflect[key](this.value, ...args))
         const handler = new Proxy(custom, {get})
-        this.proxy = new Proxy(function(){}, handler)
+        this.proxy = new Proxy(() => {}, handler)
     }
 
     get callback(){ return this.parent.getCallback?.(this.key) }

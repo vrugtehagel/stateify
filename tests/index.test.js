@@ -210,3 +210,8 @@ Deno.test('composed variable returning plain value', () => {
     state.array[1] = 'bar'
     assert(composed.isFoo.get() && !composed.isBar.get())
 })
+Deno.test('object enumeration works', () => {
+    assert(Object.keys(state).length == 6)
+    assert(Object.values(state).length == 6)
+    assert(Object.entries(state).length == 6)
+})
