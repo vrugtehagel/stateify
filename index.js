@@ -30,7 +30,8 @@ export default function stateify(thing){
 }
 
 stateify.get = value => value?.[getReference]?.value ?? value
-stateify.test = value => !!value?.[getReference]
+stateify.made = value => !!value?.[getReference]
+stateify.typeof = value => typeof stateify.get(value)
 
 class PropertyReference {
     static children = new WeakMap()

@@ -13,8 +13,13 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
   * [`set`](#special-methods-set)
   * [`delete`](#special-methods-delete)
   * [`free`](#special-methods-free)
+  * [`root`](#special-methods-root)
   * [`typeof`](#special-methods-typeof)
   * [`EventTarget` methods](#special-eventtarget-methods)
+- [Tools](#tools)
+  * [`stateify.get`](#tools-get)
+  * [`stateify.made`](#tools-made)
+  * [`stateify.typeof`](#tools-typeof)
 - [Composed state variables](#composed-state-variables)
 - [Notes](#notes)
 
@@ -61,7 +66,7 @@ const data = {
 data.foo.addEventListener('change', () => { ... })
 // TypeError: data.foo.addEventListener is not a function
 ```
-`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases (through type coercion), but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can use state variables strings and numbers like as if they actually were the string or number they represent. If you're uncomfortable with type coercion, you can always read the type of the variables or "unwrap" the state variable to work with the actual value. However the type coercion, means you can use some state variable in expressions and even compare them directly using `==`.
+`data.foo` is just a string, and strings don't have an `addEventListener` method. I don't want to add one, and so state variables are just proxy wrappers around values. They pretend to be the value you'd expect them to be in most cases (through type coercion), but "magically" allow some methods on them that they don't actually have. They type coerce just like the values they represent, and so you can use state variables representing strings and numbers like as if they actually were that. If you're uncomfortable with type coercion, you can always read the type of the variables or "unwrap" the state variable to work with the actual value. However, the type coercion means you can use some state variable in expressions (such as `div.textContent = variable`) and even compare them directly using `==`.
 ```js
 import stateify from 'stateify'
 
@@ -82,7 +87,7 @@ console.log(data.favoriteNumber === 23) // false
 console.log(data.preferences == null) // false
 console.log(data.preferences.is(null)) // true
 ```
-One limitation I should explicitly mention are boolean expression. Be careful with these; e.g. even if `foo` is a state variable with the value `false`, `''`, `0`, or `null`, `!foo` will be `false` since `foo` is a proxy, and using that proxy in a boolean expression does not trigger type coercion. This includes operators like `&&` and `||`. If you need to check for falsyness, use [`.get()`](#special-methods-get).
+One limitation I should explicitly mention are boolean expression. Be careful with these; e.g. even if `foo` is a state variable with the value `false`, `''`, `0`, or `null`, `!foo` will be `false` since `foo` is a proxy, and using that proxy in a boolean expression does not trigger type coercion. This includes operators like `&&` and `||`. If you need to check for falsiness, use [`.get()`](#special-methods-get).
 
 Additionally, the proxies do make looking at values in the console a bit more difficult - the fact that they're proxies means you don't get any autocomplete and just logging e.g. `data.favoriteNumber` will log something like `Proxy {}` (though you can use [`.get()`](#special-methods-get) to read its underlying value).
 
@@ -143,7 +148,7 @@ Gets the underlying value that a state variable represents. Useful for logging, 
 <a name="special-methods-set"></a>
 ### `set`
 
-Sets the underlying value. Mostly useful for when you're picking properties off an object. For example:
+Sets the underlying value. Basically identical to just assinging a property directly, so this is mostly useful for when you're picking properties off an object. For example:
 ```js
 import stateify from 'stateify'
 
@@ -158,6 +163,10 @@ console.log(data.favoriteNumber == 7) // true
 
 // this doesn't work because it just reassigns the variable
 favoriteNumber = 3
+// but this would work,
+data.favoriteNumber = 3
+// and it would be identical to
+data.favoriteNumber.set(3)
 ```
 
 <a name="special-methods-delete"></a>
@@ -168,7 +177,18 @@ Essentially the same as `set`, except it does a `delete` operation. That is, `da
 <a name="special-methods-free"></a>
 ### `free`
 
-State variables are intended to handle changes well, and so stateify tries to 
+State variables are intended to handle changes well, and so stateify tries to be nice. When accessing properties that do not exist, instead of throwing an error, it creates so-called "free" properties. These will simply be `undefined` until the properties gets "filled up" by other changes to the state variable. A bit of code probably explains this a bit better.
+```js
+const state = stateify({})
+const variable = state.foo.bar // normally would throw an error
+console.log(variable.is(undefined)) // true
+console.log(variable.free()) // true
+// we can retroactively define the variable;
+state.foo = {bar: 23}
+console.log(variable == 23) // true
+console.log(variable.free()) // false
+```
+As can be seen above, `state.foo.bar` does not throw an error even though `state.foo` represents `undefined` (and so normally, accessing `bar` would throw an error). Stateify allows this in order to let you more easily respond to changes in your data structure even while some parts are missing. You can use the `.free()` method to check if the variable is "free", i.e. if normally this value would not exist or be accessible.
 
 <a name="special-methods-typeof"></a>
 ### `typeof`
@@ -179,6 +199,40 @@ Since the `typeof` operator does not work on state variables (they're all proxie
 ### `EventTarget` methods
 
 Specifically, `addEventListener`, `removeEventListener` and `dispatchEvent`. While state variables are not technically instances of `EventTarget`, these methods pass on their arguments to equivalents on an underlying event target.
+
+<a name="tools"></a>
+## Tools
+
+Stateify also provides some very basic tools for you to deal with values that you're not sure are state variables. For example, if you'd like a function or method to be able to take some data in both regular form or as a state variable.
+
+<a name="tools-get"></a>
+### `stateify.get`
+
+This unwraps a state variable into the value it represents, or simply returns the value itself if it not a state variable. For example:
+```js
+const original = {foo: 23}
+const state = stateify(original)
+console.log(stateify.get(original) === original) // true
+console.log(stateify.get(state) === original) // true
+console.log(stateify.get(state.foo) === 23) // true
+```
+
+<a name="tools-made"></a>
+### `stateify.made`
+
+Returns a boolean expressing whether or not the argument provided is a state variable. For example:
+```js
+const original = {foo: 23}
+const state = stateify(original)
+console.log(stateify.made(original)) // false
+console.log(stateify.made(state)) // true
+console.log(stateify.made(state.foo)) // true
+```
+
+<a name="tools-typeof"></a>
+### `stateify.typeof`
+
+This can be used to detect the type of something, regardless of whether or not it is a state variable. It is a shorthand for `typeof stateify.get(value)`.
 
 <a name="composed-state-variables"></a>
 ## Composed state variables
@@ -196,7 +250,6 @@ console.log(favoriteDrink == 'water') // true
 state.favoriteIndex = 0 // changed!
 console.log(favoriteDrink == 'coffee') // true
 ```
-While you can still change the composed variable's value using methods like `set` and `delete`, you should not do this; the variable will update any time its stateified dependencies change, even if it has been set to a different value manually.
 
 <a name="notes"></a>
 ## Notes

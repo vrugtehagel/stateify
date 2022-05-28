@@ -97,6 +97,29 @@ Deno.test('set', () => {
     favoriteNumber.set(7)
     assert(data.favoriteNumber == 7)
 })
+Deno.test('free', () => {
+    const state = stateify({})
+    const variable = state.foo.bar
+    assert(variable.is(undefined))
+    assert(variable.free())
+    state.foo = {bar: 23}
+    assert(variable == 23)
+    assert(!variable.free())
+})
+Deno.test('stateify.get', () => {
+    const original = {foo: 23}
+    const state = stateify(original)
+    assert(stateify.get(original) === original)
+    assert(stateify.get(state) === original)
+    assert(stateify.get(state.foo) === 23)
+})
+Deno.test('stateify.made', () => {
+    const original = {foo: 23}
+    const state = stateify(original)
+    assert(!stateify.made(original))
+    assert(stateify.made(state))
+    assert(stateify.made(state.foo))
+})
 Deno.test('composed state variables', () => {
     let calls = 0
     const state = stateify({
