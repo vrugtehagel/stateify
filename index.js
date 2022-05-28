@@ -2,25 +2,40 @@ const getReference = Symbol()
 const propagationStopped = Symbol()
 let tracking
 
-function track(callback, value){
+function track(info){
     tracking = new Set
-    const result = callback()
+    const result = info.callback()
     const dependencies = tracking
     tracking = null
     const controller = new AbortController
     const {signal} = controller
     const onchange = () => {
         controller.abort()
-        track(callback, value)
+        track(info)
     }
     for(const dependency of dependencies)
         dependency.addEventListener('change', onchange, {signal})
-    value.set(result)
-    return value
+    info.result = result
+    info.setting = true
+    info.root.value.set(result)
+    info.setting = false
+    return info.root.value
+}
+
+function composed(callback){
+    const root = stateify({})
+    const info = {callback, root}
+    root.addEventListener('change', ({detail}) => {
+        if(info.setting) return
+        const {source, oldValue, value} = detail
+        if(source != root.value) return
+        info.result.set(value)
+    })
+    return track(info)
 }
 
 export default function stateify(thing){
-    if(typeof thing == 'function') return track(thing, stateify({})._)
+    if(typeof thing == 'function') return composed(thing)
     thing = stateify.get(thing)
     const root = {isObject: true, isRoot: true, value: {_: thing}}
     const reference = new PropertyReference(root, '_')

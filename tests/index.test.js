@@ -210,6 +210,18 @@ Deno.test('composed variable returning plain value', () => {
     state.array[1] = 'bar'
     assert(composed.isFoo.get() && !composed.isBar.get())
 })
+Deno.test('composed variable root can be set', () => {
+    let calls = 0
+    const state = stateify({boolean: true})
+    const composed = stateify(() => state.boolean)
+    state.addEventListener('change', () => calls++)
+    assert(composed.get())
+    assert(calls == 0)
+    composed.set(false)
+    assert(calls == 1)
+    assert(!composed.get())
+    assert(state.boolean.get() == false)
+})
 Deno.test('object enumeration works', () => {
     assert(Object.keys(state).length == 6)
     assert(Object.values(state).length == 6)
