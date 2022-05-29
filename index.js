@@ -9,15 +9,16 @@ function track(info){
     tracking = null
     const controller = new AbortController
     const {signal} = controller
-    const onchange = () => {
-        controller.abort()
-        track(info)
+    for(const dependency of dependencies){
+        dependency.addEventListener('change', ({detail}) => {
+            if(detail.source != dependency) return
+            controller.abort()
+            track(info)
+        }, {signal})
     }
-    for(const dependency of dependencies)
-        dependency.addEventListener('change', onchange, {signal})
     info.result = result
     info.setting = true
-    info.root.value.set(result)
+    info.root.value.set(stateify.get(result))
     info.setting = false
     return info.root.value
 }
@@ -27,9 +28,10 @@ function composed(callback){
     const info = {callback, root}
     root.addEventListener('change', ({detail}) => {
         if(info.setting) return
-        const {source, oldValue, value} = detail
+        const {source, value} = detail
         if(source != root.value) return
-        info.result.set(value)
+        if('value' in root) info.result.set(value)
+        else info.result.delete()
     })
     return track(info)
 }
@@ -44,7 +46,7 @@ export default function stateify(thing){
     return proxy
 }
 
-stateify.get = value => value?.[getReference]?.value ?? value
+stateify.get = value => value?.[getReference] ? value.get() : value
 stateify.made = value => !!value?.[getReference]
 stateify.typeof = value => typeof stateify.get(value)
 
