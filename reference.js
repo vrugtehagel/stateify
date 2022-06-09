@@ -1,3 +1,4 @@
+import StateVariable from './state-variable.js'
 import isSame from './is-same.js'
 import stateify from './index.js'
 import composed from './composed.js'
@@ -6,20 +7,9 @@ export default class Reference {
     static symbol = Symbol()
     static roots = new Map
     static children = new WeakMap
-    target = new EventTarget
     cache
 
-    specials = {
-        is: thing => this.value == stateify.get(thing),
-        get: () => this.value,
-        set: value => this.change(() => this.object[this.key] = stateify.get(value)),
-        delete: () => this.change(() => delete this.object?.[this.key]),
-        free: () => this.isFree,
-        typeof: () => typeof this.value,
-        addEventListener: (...args) => this.target.addEventListener(...args),
-        removeEventListener: (...args) => this.target.removeEventListener(...args),
-        dispatchEvent: (...args) => this.target.dispatchEvent(...args)
-    }
+    stateVariable = new StateVariable(this)
 
     constructor(parent, key, isRoot = false){
         const cache = Reference.children.get(parent)
@@ -66,7 +56,8 @@ export default class Reference {
 
     apply(target, thisArg, args){
         const {object, key} = this
-        if(key in this.specials) return this.parent.specials[key](...args)
+        if(key in this.stateVariable)
+            return this.parent.stateVariable[key](...args)
         if(!this.parent.isRoot && !this.parent.isObject) return
         const oldObject = {...this.object}
         const result = this.value.apply(this.object, args)
@@ -87,6 +78,10 @@ export default class Reference {
 
     has(target, key){
         return this.isObject && key in this.value
+    }
+
+    getPrototypeOf(target){
+        return this.stateVariable
     }
 
     getOwnPropertyDescriptor(target, key){
@@ -119,7 +114,7 @@ export default class Reference {
         info ??= this.getInfo()
         change ??= this.getChange()
         const detail = {...info, ...change}
-        this.target.dispatchEvent(new CustomEvent('change', {detail}))
+        this.stateVariable.dispatchEvent(new CustomEvent('change', {detail}))
         if(single) return
         const references = new Set(Reference.roots.get(this.root))
         const changes = new Map

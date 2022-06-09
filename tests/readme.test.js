@@ -40,7 +40,7 @@ Deno.test('the change event (1)', () => {
     const state = stateify({
         drinks: ['coffee', 'tea', 'milk']
     })
-    state.addEventListener('change', () => calls++)
+    state.drinks.addEventListener('change', () => calls++)
     assert(calls == 0)
     state.drinks.sort()
     assert(calls == 1)
@@ -100,6 +100,11 @@ Deno.test('free', () => {
     state.foo = {bar: 23}
     assert(variable == 23)
     assert(!variable.free())
+})
+Deno.test('EventTarget methods', () => {
+    const state = stateify({foo: 'bar'})
+    assert(state instanceof EventTarget)
+    assert(state.foo instanceof EventTarget)
 })
 Deno.test('stateify.get', () => {
     const original = {foo: 23}

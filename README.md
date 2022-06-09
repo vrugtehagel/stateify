@@ -55,7 +55,7 @@ console.log(firstDrink == 'alcohol') // true
 <a name="the-limits"></a>
 ## The limits
 
-Stateify is intended for state management, and state management only. Anything you provide to the `stateify` function should be data only, no functions. Stateify was created with the intention of stateifying JSON data, so while it _can_ work with more complex data structures, it is not guaranteed to. Specifically, this is referring to objects with getters and setters, class instances, circular references, etcetera.
+Stateify is intended for state management. As such, it was created with the intention of stateifying JSON data, so while it _can_ work with more complex data structures, it is not guaranteed to. Specifically, this is referring to objects with getters and setters, class instances, circular references, etcetera.
 
 Secondly, since I believe adding properties or methods to prototypes of built-in objects is a no-go, necessarily the state variables you get are not _actually_ the values they represent. For example, normally, we'd have this:
 ```js
@@ -93,15 +93,15 @@ Additionally, the proxies do make looking at values in the console a bit more di
 <a name="event"></a>
 ## The `change` event
 
-The `change` event is really the main feature of this library. It allows you to listen to changes anywhere in your stateified data structure. Simply listen to the values directly, like so:
+The `change` event is really the main feature of stateify. It allows you to listen to changes anywhere in your stateified data structure. Simply listen to the values directly, like so:
 ```js
 const state = stateify({
     drinks: ['coffee', 'tea', 'milk']
 })
-state.addEventListener('change', () => console.log('state changed!'))
+state.drinks.addEventListener('change', () => console.log('state changed!'))
 state.drinks.sort() // state changed!
 ```
-The event object here has a `detail` property (like a normal `CustomEvent`) with some data on it; it contains the new value (`detail.value`), and what it was before it changed (`detail.oldValue`). This is the value of the thing you've added the `change` listener to. Additionally, it contains the state variable that fired the change (`detail.source`), as well as the parent object (`detail.parent`) and the key it is under (`detail.key`). This means `detail.parent[detail.key] === detail.source`. Note that in the case of the root changing, `detail.parent` and `detail.key` will both be `null`.
+The event object here has a `detail` property (like a normal `CustomEvent`) with some data on it; it contains the new value (`detail.value`), and what it was before it changed (`detail.oldValue`). This is the value of the thing you've added the `change` listener to. Note that if these are objects that have been mutated, `oldValue` and `value` are just the same reference to that object and as such don't actually differ. Additionally, the `detail` object contains the state variable that fired the change (`detail.source`), as well as the parent object (`detail.parent`) and the key it is under (`detail.key`). This means `detail.parent[detail.key] === detail.source`. Note that in the case of the root changing, `detail.parent` and `detail.key` will both be `null`.
 
 The event bubbles all the way up to the root of the stateified data structure, and any keys that are below the changed value will also fire the `change` event granted their value actually changed. You can use the above properties on the `event.detail` object to figure out what fired the event. For example:
 ```js
@@ -189,17 +189,17 @@ state.foo = {bar: 23}
 console.log(variable == 23) // true
 console.log(variable.free()) // false
 ```
-As can be seen above, `state.foo.bar` does not throw an error even though `state.foo` represents `undefined` (and so normally, accessing `bar` would throw an error). Stateify allows this in order to let you more easily respond to changes in your data structure even while some parts are missing. You can use the `.free()` method to check if the variable is "free", i.e. if normally this value would not exist or be accessible.
+As can be seen above, `state.foo.bar` does not throw an error even though `state.foo` represents `undefined` (and so normally, accessing `bar` would throw an error). Stateify allows this in order to let you more easily respond to changes in your data structure even while some parts are missing. You can use the `.free()` method to check if the variable is "free", i.e. if normally this value would not be accessible.
 
 <a name="special-methods-typeof"></a>
 ### `typeof`
 
-Since the `typeof` operator does not work on state variables (they're all proxies, so `typeof` will always evaluate to `'object'`), this is a way to get the type of a value. `variable.typeof()` is a shorthand for `typeof variable.get()`.
+Since the `typeof` operator does not work on state variables (they're all callable proxies, so `typeof` will always evaluate to `'function'`), this is a way to get the type of a value. `variable.typeof()` is a shorthand for `typeof variable.get()`.
 
 <a name="special-eventtarget-methods"></a>
 ### `EventTarget` methods
 
-Specifically, `addEventListener`, `removeEventListener` and `dispatchEvent`. While state variables are not technically instances of `EventTarget`, these methods pass on their arguments to equivalents on an underlying event target.
+Specifically, `addEventListener`, `removeEventListener` and `dispatchEvent`. State variables will also pretend to be `EventTarget`s in the sense that `variable instanceof EventTarget` evaluates to `true`.
 
 <a name="tools"></a>
 ## Tools
