@@ -111,7 +111,7 @@ Deno.test('change fires properly', () => {
     state.foo[0] = 4
     assert(calls == 3)
 })
-Deno.test('change fires properly (deep)', () => {
+Deno.test('change fires properly (bubbles)', () => {
     let calls = 0
     const state = stateify({foo: {bar: [{baz: 23}]}})
     state.addEventListener('change', () => calls++)
@@ -122,6 +122,19 @@ Deno.test('change fires properly (deep)', () => {
     state.set(null)
     assert(calls == 3)
 })
+Deno.test('change fires properly (deep)', () => {
+    let calls = 0
+    const state = stateify({foo: {bar: [{baz: 23}]}})
+    state.foo.bar[0].baz.addEventListener('change', () => calls++)
+    state.foo = {}
+    assert(calls == 1)
+    state.foo = {fah: 'abc'}
+    assert(calls == 1)
+    state.set('hiya!')
+    assert(calls == 1)
+    state.set({foo: {bar: [{baz: 44}]}})
+    assert(calls == 2)
+})
 Deno.test('change event detail is correct', () => {
     let calls = 0
     const original = {foo: {bar: 23}}
@@ -130,8 +143,8 @@ Deno.test('change event detail is correct', () => {
         calls++
         const {value, oldValue, source, parent, key} = detail
         if(calls == 1){
-            assert(value === 44)
-            assert(oldValue === 23)
+            assert(value === original)
+            assert(oldValue === original)
             assert(source === state.foo.bar)
             assert(parent === state.foo)
             assert(key === 'bar')
@@ -154,18 +167,6 @@ Deno.test('custom events are fired', () => {
     state.foo.addEventListener(type, () => calls++)
     const event = new CustomEvent(type)
     state.foo.dispatchEvent(event)
-    assert(calls == 1)
-})
-Deno.test('event propagation can be stopped', () => {
-    let calls = 0
-    const state = stateify({foo: {bar: 23}})
-    state.addEventListener('change', () => calls++)
-    state.foo.bar = 44
-    assert(calls == 1)
-    state.foo.addEventListener('change', ({detail}) => {
-        detail.stopPropagation()
-    })
-    state.foo.bar = 7
     assert(calls == 1)
 })
 Deno.test('composed variable', () => {

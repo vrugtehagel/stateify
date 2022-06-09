@@ -13,7 +13,6 @@ Wouldn't it be nice if we could just use a regular object to keep track of our s
   * [`set`](#special-methods-set)
   * [`delete`](#special-methods-delete)
   * [`free`](#special-methods-free)
-  * [`root`](#special-methods-root)
   * [`typeof`](#special-methods-typeof)
   * [`EventTarget` methods](#special-eventtarget-methods)
 - [Tools](#tools)
@@ -102,20 +101,22 @@ const state = stateify({
 state.addEventListener('change', () => console.log('state changed!'))
 state.drinks.sort() // state changed!
 ```
-The event object here has a `detail` property (like a normal `CustomEvent`) with some data on it; it contains the new value (`detail.value`), and what it was before it changed (`detail.oldValue`). Additionally, it contains the state variable that fired the change (`detail.source`), as well as the parent object (`detail.parent`) and the key it is under (`detail.key`). This means `detail.parent[detail.key] === detail.source`. Note that in the case of the root changing, `detail.parent` and `detail.key` will both be `null`.
+The event object here has a `detail` property (like a normal `CustomEvent`) with some data on it; it contains the new value (`detail.value`), and what it was before it changed (`detail.oldValue`). This is the value of the thing you've added the `change` listener to. Additionally, it contains the state variable that fired the change (`detail.source`), as well as the parent object (`detail.parent`) and the key it is under (`detail.key`). This means `detail.parent[detail.key] === detail.source`. Note that in the case of the root changing, `detail.parent` and `detail.key` will both be `null`.
 
-The event bubbles all the way up to the root of the stateified data structure. You can use the above properties on the `event.detail` object to figure out what fired the event. You may also stop propagation like you can normal events, but not through `event.stopPropagation()`; this function is instead available on the `detail` object, so one could do:
+The event bubbles all the way up to the root of the stateified data structure, and any keys that are below the changed value will also fire the `change` event granted their value actually changed. You can use the above properties on the `event.detail` object to figure out what fired the event. For example:
 ```js
 const state = stateify({
-    drinks: ['coffee', 'tea', 'milk']
+    fridge: {
+        drinks: ['coffee', 'tea', 'milk'],
+        veggiedrawer: []
+    },
+    freezer: ['pizza']
 })
-state.addEventListener('change', () => console.log('state changed!'))
-state.drinks.addEventListener('change', ({detail}) => {
-    if(detail.value == 'beer') detail.stopPropagation()
-})
-state.drinks[0] = 'wine' // state changed!
-state.drinks[0] = 'beer'
-state.drinks[0] = 'whiskey' // state changed!
+state.fridge.drinks[0].addEventListener('change', () => console.log('drinks changed!'))
+state.addEventListener('change', ({detail}) => console.log(`${detail.key} changed!`))
+state.fridge.drinks[0] = 'wine' // "drinks changed!", "0 changed!"
+state.fridge = {} // "drinks changed!", "fridge changed!"
+state.freezer.pop() // "freezer changed!"
 ```
 
 <a name="special-methods"></a>
@@ -254,6 +255,6 @@ console.log(favoriteDrink == 'coffee') // true
 <a name="notes"></a>
 ## Notes
 
-- State variable are always relative to the root of what you initially passed to `stateify`. This means e.g. `stateify({foo: {bar: 23}}).foo` is not the same as `stateify({bar: 23})`.
+- State variable are always relative to the root of what you initially passed to `stateify`. This means e.g. `stateify({foo: {bar: 23}}).foo` is not the same thing as `stateify({bar: 23})`.
 
 - Built-in methods on any state variable return non-state variable values. So if `data.drinks` is a state variable for `['coffee', 'tea', 'milk']`, then e.g. `data.drinks.sort()` returns a reference to the _underlying_ array, not `data.drinks` itself.

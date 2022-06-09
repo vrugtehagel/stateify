@@ -47,35 +47,30 @@ Deno.test('the change event (1)', () => {
 })
 Deno.test('the change event (2)', () => {
     let calls = 0
+    let drinksCalls = 0
     const state = stateify({
-        drinks: ['coffee', 'tea', 'milk']
+        fridge: {
+            drinks: ['coffee', 'tea', 'milk'],
+            veggiedrawer: []
+        },
+        freezer: ['pizza']
     })
+    state.fridge.drinks[0].addEventListener('change', () => drinksCalls++)
     state.addEventListener('change', ({detail}) => {
         calls++
-        const {parent, key, source} = detail
-        assert(parent[key] === source)
+        if(calls == 1) assert(detail.key == '0')
+        if(calls == 2) assert(detail.key == 'fridge')
+        if(calls == 3) assert(detail.key == 'freezer')
     })
-    state.drinks.sort()
-    state.drinks[0] = 'orange juice'
-    state.drinks = ['water']
-    assert(calls == 3)
-})
-Deno.test('the change event (3)', () => {
-    let calls = 0
-    const state = stateify({
-        drinks: ['coffee', 'tea', 'milk']
-    })
-    state.addEventListener('change', () => calls++)
-    state.drinks.addEventListener('change', ({detail}) => {
-        if(detail.value == 'beer') detail.stopPropagation()
-    })
-    assert(calls == 0)
-    state.drinks[0] = 'wine'
+    state.fridge.drinks[0] = 'wine'
     assert(calls == 1)
-    state.drinks[0] = 'beer'
-    assert(calls == 1)
-    state.drinks[0] = 'whiskey'
+    assert(drinksCalls == 1)
+    state.fridge = {}
     assert(calls == 2)
+    assert(drinksCalls == 2)
+    state.freezer.pop()
+    assert(calls == 3)
+    assert(drinksCalls == 2)
 })
 Deno.test('is', () => {
     const data = stateify({
