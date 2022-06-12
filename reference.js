@@ -61,7 +61,7 @@ export default class Reference {
         if(!this.parent.isRoot && !this.parent.isObject) return
         const oldObject = {...this.object}
         const result = this.value.apply(this.object, args)
-        const newObject = this.value
+        const newObject = this.object
         const keys = new Set(Object.keys(newObject))
         for(const key of Object.keys(oldObject)) keys.add(key)
         for(const key of keys){
