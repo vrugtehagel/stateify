@@ -100,6 +100,14 @@ Deno.test('.free()', () => {
     assert(!qux.free())
     assert('quux' in qux)
 })
+Deno.test('methods work', () => {
+    assert(state.string.slice(0, 5) === 'hello')
+    assert(state.number.toFixed(2) == '23.00')
+    assert(state.array.at(-1) === '3')
+    assert(Array.isArray(state.array.reverse()))
+    assert(state.array[0] == '3')
+    state.array.reverse()
+})
 Deno.test('change fires properly', () => {
     let calls = 0
     const state = stateify({foo: ['a', 'b', 'c']})

@@ -58,9 +58,10 @@ export default class Reference {
         const {object, key} = this
         if(key in this.stateVariable)
             return this.parent.stateVariable[key](...args)
-        if(!this.parent.isRoot && !this.parent.isObject) return
+        if(!this.parent.isRoot && !this.parent.isObject)
+            return this.object[key](...args)
         const oldObject = {...this.object}
-        const result = this.value.apply(this.object, args)
+        const result = this.object[key](...args)
         const newObject = this.object
         const keys = new Set(Object.keys(newObject))
         for(const key of Object.keys(oldObject)) keys.add(key)
