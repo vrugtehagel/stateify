@@ -92,7 +92,8 @@ export default class Reference {
 
     change(callback){
         callback()
-        this.dispatchChange()
+        const change = this.getChange()
+        this.dispatchChange(change)
     }
 
     getInfo(){

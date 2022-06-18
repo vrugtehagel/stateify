@@ -119,6 +119,16 @@ Deno.test('change fires properly', () => {
     state.foo[0] = 4
     assert(calls == 3)
 })
+Deno.test('change doesn\'t fire if nothing changed', () => {
+    let calls = 0
+    const array = ['a', 'b', 'c']
+    const state = stateify({string: 'bonjour~', number: 23, array})
+    state.addEventListener('change', () => calls++)
+    state.string = 'bonjour~'
+    state.number.set(23)
+    state.array = array.reverse()
+    assert(calls == 0)
+})
 Deno.test('change fires properly (bubbles)', () => {
     let calls = 0
     const state = stateify({foo: {bar: [{baz: 23}]}})
