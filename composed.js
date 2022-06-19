@@ -8,8 +8,7 @@ function track(info){
     const controller = new AbortController
     const {signal} = controller
     for(const dependency of dependencies){
-        dependency.addEventListener('change', ({detail}) => {
-            if(detail.source != dependency) return
+        dependency.addEventListener('change', () => {
             controller.abort()
             track(info)
         }, {signal})

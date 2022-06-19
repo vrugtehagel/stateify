@@ -233,7 +233,7 @@ Deno.test('composed variable root can be set', () => {
     let calls = 0
     const state = stateify({boolean: true})
     const composed = stateify(() => state.boolean)
-    state.addEventListener('change', () => calls++)
+    composed.addEventListener('change', () => calls++)
     assert(composed.get() === true)
     assert(calls == 0)
     composed.set(false)
@@ -244,6 +244,17 @@ Deno.test('composed variable root can be set', () => {
     composed.delete()
     assert(calls == 2)
     assert(!('boolean' in state))
+})
+Deno.test('composed variable reacts to implicit changes', () => {
+    let calls = 0
+    const state = stateify({foo: {bar: {baz: 23}}})
+    const {baz} = state.foo.bar
+    const composed = stateify(() => baz.is(23))
+    composed.addEventListener('change', () => calls++)
+    assert(composed.is(true))
+    state.foo = {}
+    assert(calls == 1)
+    assert(composed.is(false))
 })
 Deno.test('object enumeration works', () => {
     assert(Object.keys(state).length == 6)
