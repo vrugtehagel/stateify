@@ -209,6 +209,16 @@ Deno.test('composed variable', () => {
     assert(composed.is('foo'))
     assert(calls == 3)
 })
+Deno.test('composed variable 2', () => {
+    let calls = 0
+    const state = stateify(1)
+    const composed = stateify(() => state + 1)
+    composed.addEventListener('change', () => calls++)
+    assert(composed == 2)
+    state.set(23)
+    assert(composed == 24)
+    assert(calls == 1)
+})
 Deno.test('composed variable returning plain value', () => {
     const state = stateify({
         index: 2,

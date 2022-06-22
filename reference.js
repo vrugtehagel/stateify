@@ -33,6 +33,7 @@ export default class Reference {
     get isFree(){ return !this.isRoot && !this.parent.isObject }
 
     get(target, key){
+        composed.tracking?.add(this.proxy)
         if(key == Reference.symbol) return this
         if(key == Symbol.toPrimitive)
             return this.isObject ? undefined : () => this.value
@@ -41,7 +42,6 @@ export default class Reference {
         if(key == 'toString') return () => this.value.toString()
         const {proxy} = new Reference(this, key)
         composed.tracking?.add(proxy)
-        if(!this.isRoot) composed.tracking?.add(this.parent.proxy)
         return proxy
     }
 
