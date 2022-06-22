@@ -1,10 +1,11 @@
 import stateify from './index.js'
 
 function track(info){
+    const before = composed.tracking
     composed.tracking = new Set
     const result = info.callback()
     const dependencies = composed.tracking
-    composed.tracking = null
+    composed.tracking = before
     const controller = new AbortController
     const {signal} = controller
     for(const dependency of dependencies){
