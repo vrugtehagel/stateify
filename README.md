@@ -1,5 +1,8 @@
 # Stateify
 
+> [!CAUTION]
+> This package has been deprecated, as it is superseded by [Yozo](https://yozo.ooo/); specifically by [live variables](https://yozo.ooo/docs/live/). Stateify works as designed, but its design is somewhat flawed; getting reactive state variables to act like their underlying values without distinguishing them in code is, I believe, more confusing than helpful. All in all, live variables are a more polished version of this library, and integrate with additional helper functions such as [`effect()`](https://yozo.ooo/docs/effect/).
+
 A simple way to make state management easy.
 
 Wouldn't it be nice if we could just use a regular object to keep track of our state? And use properties as if they were event targets? Well, now you can!
